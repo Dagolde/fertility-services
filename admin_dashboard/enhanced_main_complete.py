@@ -769,3 +769,58 @@ def show_hospitals_list():
 
 def show_add_hospital():
     """Add a new hospital to the system"""
+    st.write("Add hospital form implementation here")
+
+def show_manage_doctors():
+    """Manage hospital doctors"""
+    st.subheader("Manage Hospital Doctors")
+    
+    hospitals = get_hospitals()
+    if not hospitals:
+        st.info("No hospitals found")
+        return
+    
+    hospital_options = {f"{hospital['name']} - {hospital['city']}": hospital['id'] for hospital in hospitals}
+    selected_hospital_name = st.selectbox("Select Hospital", list(hospital_options.keys()))
+    
+    if selected_hospital_name:
+        hospital_id = hospital_options[selected_hospital_name]
+        
+        tab1, tab2 = st.tabs(["👨‍⚕️ Current Doctors", "➕ Add Doctor"])
+        
+        with tab1:
+            doctors = get_hospital_doctors(hospital_id)
+            
+            if not doctors:
+                st.info("No doctors found for this hospital")
+            else:
+                st.subheader(f"Doctors ({len(doctors)})")
+                
+                for doctor in doctors:
+                    with st.container():
+                        col1, col2, col3 = st.columns([2, 1, 1])
+                        
+                        with col1:
+                            st.write(f"**Name:** Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')}")
+                            st.write(f"**Email:** {doctor.get('email', 'N/A')}")
+                            st.write(f"**Phone:** {doctor.get('phone', 'N/A')}")
+                        
+                        with col2:
+                            st.write(f"**Active:** {'Yes' if doctor.get('is_active', False) else 'No'}")
+                            st.write(f"**Verified:** {'Yes' if doctor.get('is_verified', False) else 'No'}")
+                        
+                        with col3:
+                            if st.button("🗑️ Remove", key=f"remove_doctor_{doctor['id']}"):
+                                if st.session_state.get(f"confirm_remove_doctor_{doctor['id']}", False):
+                                    if remove_doctor_from_hospital(hospital_id, doctor['id']):
+                                        st.success("Doctor removed successfully!")
+                                        st.session_state[f"confirm_remove_doctor_{doctor['id']}"] = False
+                                        st.rerun()
+                                    else:
+                                        st.error("Failed to remove doctor")
+                                else:
+                                    st.warning("Click again to confirm removal")
+                                    st.session_state[f"confirm_remove_doctor_{doctor['id']}"] = True
+        
+        with tab2:
+            st.write("Add doctor form implementation here")

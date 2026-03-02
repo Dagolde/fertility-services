@@ -265,6 +265,18 @@ def remove_doctor_from_hospital(hospital_id, doctor_id):
         st.error(f"Error removing doctor: {str(e)}")
         return False
 
+def toggle_hospital_verification(hospital_id):
+    """Toggle hospital verification status"""
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/admin/hospitals/{hospital_id}/toggle-verification",
+            headers=get_headers()
+        )
+        return response.status_code == 200
+    except Exception as e:
+        st.error(f"Error toggling hospital verification: {str(e)}")
+        return False
+
 def verify_user(user_id, verification_status):
     """Verify or unverify user"""
     try:
