@@ -1,0 +1,62 @@
+"""
+Database migration to add hospital_type field to hospitals table
+"""
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'python_backend'))
+
+from sqlalchemy import create_engine, text
+from python_backend.app.database import get_database_url
+
+def add_hospital_type_column():
+    """Add hospital_type column to hospitals table"""
+    
+    # Get database URL
+    database_url = get_database_url()
+    engine = create_engine(database_url)
+    
+    try:
+        with engine.connect() as connection:
+            # Check if column already exists
+            result = connection.execute(text("""
+                SELECT COUNT(*) as count 
+                FROM information_schema.columns 
+                WHERE table_name = 'hospitals' 
+                AND column_name = 'hospital_type'
+            """))
+            
+            column_exists = result.fetchone()[0] > 0
+            
+            if not column_exists:
+                print("Adding hospital_type column to hospitals table...")
+                
+                # Add the hospital_type column
+                connection.execute(text("""
+                    ALTER TABLE hospitals 
+                    ADD COLUMN hospital_type ENUM(
+                        'IVF Centers',
+                        'Fertility Clinics', 
+                        'Sperm Banks',
+                        'Surrogacy Centers',
+                        'General Hospital'
+                    ) DEFAULT 'General Hospital'
+                """))
+                
+                # Update existing records to have a default type
+                connection.execute(text("""
+                    UPDATE hospitals 
+                    SET hospital_type = 'General Hospital' 
+                    WHERE hospital_type IS NULL
+                """))
+                
+                connection.commit()
+                print("✅ Successfully added hospital_type column")
+            else:
+                print("ℹ️  hospital_type column already exists")
+                
+    except Exception as e:
+        print(f"❌ Error adding hospital_type column: {e}")
+        raise
+
+if __name__ == "__main__":
+    add_hospital_type_column()
