@@ -672,4 +672,14 @@ def show_manage_doctors():
                         with col3:
                             if st.button("🗑️ Remove", key=f"remove_doctor_{doctor['id']}"):
                                 if st.session_state.get(f"confirm_remove_doctor_{doctor['id']}", False):
-                                    if remove_doctor_from_hospital(hospital_id, doctor['
+                                    if remove_doctor_from_hospital(hospital_id, doctor['id']):
+                                        st.success("Doctor removed successfully!")
+                                        st.session_state[f"confirm_remove_doctor_{doctor['id']}"] = False
+                                        st.rerun()
+                                    else:
+                                        st.error("Failed to remove doctor")
+                                else:
+                                    st.warning("Click again to confirm removal")
+                                    st.session_state[f"confirm_remove_doctor_{doctor['id']}"] = True
+                        
+                        st.markdown('</div>', unsafe_allow_html=True)

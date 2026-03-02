@@ -760,4 +760,4 @@ def show_manage_doctors():
         return
     
     # Hospital selection
-    hospital_options = {f"{hospital['name']} -
+    hospital_options = {f"{hospital['name']} - {hospital['city']}": hospital['id'] for hospital in hospitals}

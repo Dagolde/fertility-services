@@ -122,7 +122,6 @@ class HospitalUpdate(BaseModel):
     description: Optional[str] = None
     services_offered: Optional[List[str]] = None
 
-=======
 class HospitalResponse(HospitalBase):
     id: int
     user_id: int
@@ -150,7 +149,6 @@ class HospitalResponse(HospitalBase):
         if 'zip_code' in data:
             data['postal_code'] = data['zip_code']
         return data
-=======
 
 # Service schemas
 class ServiceBase(BaseModel):

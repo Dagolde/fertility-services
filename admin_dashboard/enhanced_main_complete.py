@@ -768,4 +768,4 @@ def show_hospitals_list():
                             st.warning("Click again to confirm deletion")
 
 def show_add_hospital():
-    """
+    """Add a new hospital to the system"""
