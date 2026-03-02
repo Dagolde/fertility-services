@@ -28,7 +28,7 @@ jobs:
         find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
         find . -type f -name "*.pyc" -delete 2>/dev/null || true
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
