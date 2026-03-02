@@ -267,6 +267,7 @@ def remove_doctor_from_hospital(hospital_id, doctor_id):
 
 def toggle_hospital_verification(hospital_id):
     """Toggle hospital verification status"""
+    # Toggle verification status for a hospital
     try:
         response = requests.post(
             f"{API_BASE_URL}/admin/hospitals/{hospital_id}/toggle-verification",

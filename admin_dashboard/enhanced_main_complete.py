@@ -276,6 +276,7 @@ def toggle_user_status(user_id):
 
 def toggle_hospital_verification(hospital_id):
     """Toggle hospital verification status"""
+    # Toggle verification status for a hospital
     try:
         response = requests.post(
             f"{API_BASE_URL}/admin/hospitals/{hospital_id}/toggle-verification",
@@ -773,6 +774,7 @@ def show_add_hospital():
 
 def show_manage_doctors():
     """Manage hospital doctors"""
+    # Show doctor management interface for hospitals
     st.subheader("Manage Hospital Doctors")
     
     hospitals = get_hospitals()
