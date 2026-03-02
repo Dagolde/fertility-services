@@ -99,28 +99,26 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primarySwatch: MaterialColor(primaryColor.value, {
-        50: primaryColor.withOpacity(0.1),
-        100: primaryColor.withOpacity(0.2),
-        200: primaryColor.withOpacity(0.3),
-        300: primaryColor.withOpacity(0.4),
-        400: primaryColor.withOpacity(0.5),
+      primarySwatch: MaterialColor(primaryColor.toARGB32(), {
+        50: primaryColor.withValues(alpha: 0.1),
+        100: primaryColor.withValues(alpha: 0.2),
+        200: primaryColor.withValues(alpha: 0.3),
+        300: primaryColor.withValues(alpha: 0.4),
+        400: primaryColor.withValues(alpha: 0.5),
         500: primaryColor,
-        600: primaryColor.withOpacity(0.7),
-        700: primaryColor.withOpacity(0.8),
-        800: primaryColor.withOpacity(0.9),
+        600: primaryColor.withValues(alpha: 0.7),
+        700: primaryColor.withValues(alpha: 0.8),
+        800: primaryColor.withValues(alpha: 0.9),
         900: primaryDarkColor,
       }),
       colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: secondaryColor,
         surface: surfaceColor,
-        background: backgroundColor,
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimaryColor,
-        onBackground: textPrimaryColor,
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: backgroundColor,
@@ -142,7 +140,7 @@ class AppTheme {
       ),
       
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: cardColor,
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -258,7 +256,7 @@ class AppTheme {
       ),
       
       // Tab Bar Theme
-      tabBarTheme: const TabBarTheme(
+      tabBarTheme: const TabBarThemeData(
         labelColor: primaryColor,
         unselectedLabelColor: textSecondaryColor,
         indicatorColor: primaryColor,
@@ -276,28 +274,26 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primarySwatch: MaterialColor(primaryColor.value, {
-        50: primaryColor.withOpacity(0.1),
-        100: primaryColor.withOpacity(0.2),
-        200: primaryColor.withOpacity(0.3),
-        300: primaryColor.withOpacity(0.4),
-        400: primaryColor.withOpacity(0.5),
+      primarySwatch: MaterialColor(primaryColor.toARGB32(), {
+        50: primaryColor.withValues(alpha: 0.1),
+        100: primaryColor.withValues(alpha: 0.2),
+        200: primaryColor.withValues(alpha: 0.3),
+        300: primaryColor.withValues(alpha: 0.4),
+        400: primaryColor.withValues(alpha: 0.5),
         500: primaryColor,
-        600: primaryColor.withOpacity(0.7),
-        700: primaryColor.withOpacity(0.8),
-        800: primaryColor.withOpacity(0.9),
+        600: primaryColor.withValues(alpha: 0.7),
+        700: primaryColor.withValues(alpha: 0.8),
+        800: primaryColor.withValues(alpha: 0.9),
         900: primaryDarkColor,
       }),
       colorScheme: const ColorScheme.dark(
         primary: primaryColor,
         secondary: secondaryColor,
         surface: darkSurfaceColor,
-        background: darkBackgroundColor,
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: darkTextPrimaryColor,
-        onBackground: darkTextPrimaryColor,
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: darkBackgroundColor,
@@ -319,7 +315,7 @@ class AppTheme {
       ),
       
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: darkCardColor,
         elevation: 2,
         shape: RoundedRectangleBorder(
