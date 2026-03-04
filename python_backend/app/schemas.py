@@ -167,32 +167,77 @@ class HospitalResponse(HospitalBase):
             data['postal_code'] = data['zip_code']
         return data
 
+# Service Category Enum
+class ServiceCategoryEnum(str, Enum):
+    IVF = "IVF"
+    IUI = "IUI"
+    FERTILITY_TESTING = "Fertility_Testing"
+    CONSULTATION = "Consultation"
+    EGG_FREEZING = "Egg_Freezing"
+    OTHER = "Other"
+
 # Service schemas
 class ServiceBase(BaseModel):
     name: str
-    service_type: ServiceTypeEnum
     description: Optional[str] = None
     price: Optional[float] = None
-    duration_minutes: Optional[int] = None
+    duration_minutes: Optional[int] = 60
+    category: Optional[ServiceCategoryEnum] = None
+    service_type: Optional[str] = None
+    is_featured: Optional[bool] = False
 
 class ServiceCreate(ServiceBase):
-    pass
+    hospital_id: int
+    
+    @validator('price')
+    def validate_price(cls, v):
+        if v <= 0:
+            raise ValueError('Service price must be a positive number')
+        return v
 
 class ServiceUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
     duration_minutes: Optional[int] = None
+    category: Optional[ServiceCategoryEnum] = None
+    service_type: Optional[str] = None
+    is_featured: Optional[bool] = None
     is_active: Optional[bool] = None
+    
+    @validator('price')
+    def validate_price(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError('Service price must be a positive number')
+        return v
 
 class ServiceResponse(ServiceBase):
     id: int
+    hospital_id: Optional[int] = None
     is_active: bool
+    view_count: Optional[int] = 0
+    booking_count: Optional[int] = 0
     created_at: datetime
     updated_at: datetime
     
     class Config:
         from_attributes = True
+
+class ServiceListResponse(BaseModel):
+    services: List[ServiceResponse]
+    total: int
+    page: int
+    limit: int
+
+class ServiceImportResponse(BaseModel):
+    imported_count: int
+    error_count: int
+    errors: List[Dict[str, Any]]
+
+class ServiceArchiveResponse(BaseModel):
+    status: str
+    message: str
+    service_id: int
 
 # Appointment schemas
 class AppointmentBase(BaseModel):
@@ -203,6 +248,44 @@ class AppointmentBase(BaseModel):
 
 class AppointmentCreate(AppointmentBase):
     pass
+
+class AppointmentReserveRequest(BaseModel):
+    hospital_id: int
+    service_id: int
+    appointment_date: datetime
+    notes: Optional[str] = None
+
+class AppointmentReserveResponse(BaseModel):
+    reservation_id: str
+    expires_at: datetime
+    appointment: "AppointmentResponse"
+
+class AppointmentConfirmRequest(BaseModel):
+    reservation_id: str
+    payment_method: str = "paystack"
+
+class AppointmentConfirmResponse(BaseModel):
+    appointment: "AppointmentResponse"
+    payment: Dict[str, Any]
+
+class AppointmentRescheduleRequest(BaseModel):
+    new_date: datetime
+
+class AppointmentCancelRequest(BaseModel):
+    reason: Optional[str] = None
+
+class AppointmentCancelResponse(BaseModel):
+    message: str
+    refund: Dict[str, Any]
+
+class TimeSlot(BaseModel):
+    time: str
+    available: bool
+    duration_minutes: int
+
+class AvailabilityResponse(BaseModel):
+    date: str
+    slots: List[TimeSlot]
 
 class AppointmentUpdate(BaseModel):
     appointment_date: Optional[datetime] = None
@@ -215,6 +298,9 @@ class AppointmentResponse(AppointmentBase):
     user_id: int
     status: AppointmentStatusEnum
     price: Optional[float] = None
+    reserved_until: Optional[datetime] = None
+    cancellation_reason: Optional[str] = None
+    cancelled_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     
@@ -381,3 +467,93 @@ class WalletTransactionResponse(BaseModel):
     status: str
     created_at: str
     payment_gateway: Optional[str] = None
+
+# Review schemas
+class ReviewCreate(BaseModel):
+    hospital_id: int
+    appointment_id: int
+    rating: int
+    comment: Optional[str] = None
+    
+    @validator('rating')
+    def validate_rating(cls, v):
+        if not 1 <= v <= 5:
+            raise ValueError('Rating must be between 1 and 5')
+        return v
+    
+    @validator('comment')
+    def validate_comment(cls, v):
+        if v and len(v) > 1000:
+            raise ValueError('Comment must not exceed 1000 characters')
+        return v
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = None
+    comment: Optional[str] = None
+    
+    @validator('rating')
+    def validate_rating(cls, v):
+        if v is not None and not 1 <= v <= 5:
+            raise ValueError('Rating must be between 1 and 5')
+        return v
+    
+    @validator('comment')
+    def validate_comment(cls, v):
+        if v and len(v) > 1000:
+            raise ValueError('Comment must not exceed 1000 characters')
+        return v
+
+class ReviewResponse(BaseModel):
+    id: int
+    user_id: int
+    hospital_id: int
+    appointment_id: int
+    rating: int
+    comment: Optional[str] = None
+    is_flagged: bool
+    flag_count: int
+    is_hidden: bool
+    hospital_response: Optional[str] = None
+    hospital_response_date: Optional[datetime] = None
+    is_immutable: bool
+    immutable_after: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class ReviewWithUser(ReviewResponse):
+    user: Optional[UserResponse] = None
+
+class ReviewFlagRequest(BaseModel):
+    reason: Optional[str] = None
+
+class ReviewRespondRequest(BaseModel):
+    response: str
+    
+    @validator('response')
+    def validate_response(cls, v):
+        if len(v) > 500:
+            raise ValueError('Response must not exceed 500 characters')
+        return v
+
+class ReviewModerateRequest(BaseModel):
+    action: str
+    reason: Optional[str] = None
+    
+    @validator('action')
+    def validate_action(cls, v):
+        if v not in ['hide', 'show', 'delete']:
+            raise ValueError('Action must be one of: hide, show, delete')
+        return v
+
+class ReviewListResponse(BaseModel):
+    reviews: List[ReviewResponse]
+    pagination: Dict[str, int]
+    average_rating: float
+    rating_distribution: Dict[int, int]
+
+# Resolve forward references
+AppointmentReserveResponse.model_rebuild()
+AppointmentConfirmResponse.model_rebuild()

@@ -7,9 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/appointment_model.dart';
 import '../../../shared/widgets/custom_button.dart';
-import '../../../shared/widgets/loading_overlay.dart';
 import '../providers/appointments_provider.dart';
-import '../../auth/providers/auth_provider.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -322,7 +320,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppConfig.smallBorderRadius),
                     ),
                     child: Text(
@@ -583,9 +581,33 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
   }
 
   void _rescheduleAppointment(AppointmentModel appointment) {
-    // TODO: Implement reschedule functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reschedule functionality coming soon')),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _RescheduleBottomSheet(
+        appointment: appointment,
+        onReschedule: (newDate) async {
+          final provider = context.read<AppointmentsProvider>();
+          final success = await provider.rescheduleAppointment(
+            appointmentId: appointment.id,
+            newDate: newDate,
+          );
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(success 
+                    ? 'Appointment rescheduled successfully' 
+                    : provider.errorMessage ?? 'Failed to reschedule appointment'),
+                backgroundColor: success ? Colors.green : Colors.red,
+              ),
+            );
+          }
+        },
+      ),
     );
   }
 
@@ -619,6 +641,157 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
             },
             child: const Text('Yes'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RescheduleBottomSheet extends StatefulWidget {
+  final AppointmentModel appointment;
+  final Function(DateTime) onReschedule;
+
+  const _RescheduleBottomSheet({
+    required this.appointment,
+    required this.onReschedule,
+  });
+
+  @override
+  State<_RescheduleBottomSheet> createState() => _RescheduleBottomSheetState();
+}
+
+class _RescheduleBottomSheetState extends State<_RescheduleBottomSheet> {
+  DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.appointment.appointmentDate;
+    _selectedTime = TimeOfDay.fromDateTime(widget.appointment.appointmentDate);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: AppConfig.defaultPadding,
+        right: AppConfig.defaultPadding,
+        top: AppConfig.defaultPadding,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Reschedule Appointment',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.appointment.serviceName,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Current Date & Time',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            DateFormat('MMM dd, yyyy • hh:mm a').format(widget.appointment.appointmentDate),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'New Date & Time',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _selectedDate = date;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today),
+                  label: Text(DateFormat('MMM dd, yyyy').format(_selectedDate)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: _selectedTime,
+                    );
+                    if (time != null) {
+                      setState(() {
+                        _selectedTime = time;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.access_time),
+                  label: Text(_selectedTime.format(context)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          CustomButton(
+            text: 'Confirm Reschedule',
+            onPressed: () {
+              final newDateTime = DateTime(
+                _selectedDate.year,
+                _selectedDate.month,
+                _selectedDate.day,
+                _selectedTime.hour,
+                _selectedTime.minute,
+              );
+              
+              Navigator.pop(context);
+              widget.onReschedule(newDateTime);
+            },
+          ),
+          const SizedBox(height: 12),
+          CustomButton(
+            text: 'Cancel',
+            onPressed: () => Navigator.pop(context),
+            isOutlined: true,
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

@@ -144,4 +144,33 @@ class AppointmentsRepository {
       rethrow;
     }
   }
+
+  Future<AppointmentModel?> rescheduleAppointment({
+    required int appointmentId,
+    required DateTime newDate,
+  }) async {
+    try {
+      debugPrint('🔍 AppointmentsRepository.rescheduleAppointment() called');
+      debugPrint('   appointmentId: $appointmentId, newDate: $newDate');
+      
+      final response = await ApiService.put(
+        '$_basePath$appointmentId/reschedule',
+        data: {'new_date': newDate.toIso8601String()},
+      );
+
+      debugPrint('📦 rescheduleAppointment response status: ${response.statusCode}');
+      debugPrint('📦 rescheduleAppointment response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final appointment = AppointmentModel.fromJson(response.data);
+        debugPrint('✅ rescheduleAppointment successful: ${appointment.id}');
+        return appointment;
+      }
+      debugPrint('❌ rescheduleAppointment failed with status: ${response.statusCode}');
+      return null;
+    } catch (e) {
+      debugPrint('❌ rescheduleAppointment error: $e');
+      rethrow;
+    }
+  }
 }

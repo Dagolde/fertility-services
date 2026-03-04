@@ -15,6 +15,16 @@ class Service {
   final int? durationMinutes;
   @JsonKey(name: 'is_active')
   final bool isActive;
+  final String? category;
+  final double? rating;
+  @JsonKey(name: 'booking_count')
+  final int? bookingCount;
+  @JsonKey(name: 'image_url')
+  final String? imageUrl;
+  @JsonKey(name: 'is_featured')
+  final bool? isFeatured;
+  @JsonKey(name: 'hospital_id')
+  final int? hospitalId;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @JsonKey(name: 'updated_at')
@@ -28,6 +38,12 @@ class Service {
     this.price,
     this.durationMinutes,
     required this.isActive,
+    this.category,
+    this.rating,
+    this.bookingCount,
+    this.imageUrl,
+    this.isFeatured,
+    this.hospitalId,
     required this.createdAt,
     required this.updatedAt,
   });

@@ -32,7 +32,11 @@ class ServicesRepository {
       debugPrint('📦 getServices response data: ${response.data}');
 
       if (response.statusCode == 200) {
-        final services = response.data as List<dynamic>;
+        // API returns {services: [...], total: X, page: Y, limit: Z}
+        final responseData = response.data;
+        final services = responseData is Map 
+            ? (responseData['services'] as List<dynamic>? ?? [])
+            : (responseData as List<dynamic>? ?? []);
         debugPrint('✅ getServices returning ${services.length} services');
         return services;
       }
@@ -94,6 +98,7 @@ class ServicesRepository {
       debugPrint('📦 getFeaturedServices response data: ${response.data}');
 
       if (response.statusCode == 200) {
+        // API returns a list of services directly for /featured endpoint
         final services = response.data as List<dynamic>;
         debugPrint('✅ getFeaturedServices returning ${services.length} featured services');
         for (int i = 0; i < services.length; i++) {

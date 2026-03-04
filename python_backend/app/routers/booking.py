@@ -17,6 +17,7 @@ router = APIRouter()
 async def initiate_booking(
     service_id: int,
     appointment_date: datetime,
+    hospital_id: Optional[int] = Query(None),  # Optional hospital ID
     payment_method: Optional[str] = Query(None),  # 'wallet', 'paystack', 'stripe', etc.
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -34,6 +35,20 @@ async def initiate_booking(
         raise HTTPException(status_code=400, detail="Service is not available")
     
     price = float(service.price)  # Get actual price from service
+    
+    # 2. Determine hospital
+    if hospital_id:
+        hospital = db.query(Hospital).filter(Hospital.id == hospital_id).first()
+        if not hospital:
+            raise HTTPException(status_code=404, detail="Hospital not found")
+        if not hospital.is_verified:
+            raise HTTPException(status_code=400, detail="Hospital is not verified")
+    else:
+        # Get a default hospital for the appointment
+        hospital = db.query(Hospital).filter(Hospital.is_verified == True).first()
+        if not hospital:
+            raise HTTPException(status_code=400, detail="No verified hospitals available")
+        hospital_id = hospital.id
 
     if not payment_method:
         # Return all active gateways for frontend to display
@@ -69,17 +84,10 @@ async def initiate_booking(
         if user.wallet_balance < price_decimal:
             raise HTTPException(status_code=400, detail="Insufficient wallet balance")
         
-        # Get a default hospital for the appointment
-        # For now, we'll use the first available hospital
-        # In a real implementation, this should be based on service availability or user preference
-        default_hospital = db.query(Hospital).filter(Hospital.is_verified == True).first()
-        if not default_hospital:
-            raise HTTPException(status_code=400, detail="No verified hospitals available")
-        
         # Create appointment first
         appointment = Appointment(
             user_id=current_user.id,
-            hospital_id=default_hospital.id,
+            hospital_id=hospital_id,
             service_id=service_id,
             appointment_date=appointment_date,
             status='confirmed',
@@ -156,6 +164,7 @@ async def initiate_booking(
                 callback_url=f"https://yourdomain.com/payment/callback",
                 metadata={
                     "service_id": service_id,
+                    "hospital_id": hospital_id,
                     "user_id": current_user.id,
                     "user_name": f"{current_user.first_name} {current_user.last_name}",
                     "appointment_date": appointment_date.isoformat()
@@ -250,15 +259,24 @@ async def verify_payment(
     metadata = verification['data'].get('metadata', {})
     service_id = metadata.get('service_id', 1)
     appointment_date = metadata.get('appointment_date', datetime.now())
-    # Get a default hospital for the appointment
-    default_hospital = db.query(Hospital).filter(Hospital.is_verified == True).first()
-    if not default_hospital:
-        raise HTTPException(status_code=400, detail="No verified hospitals available")
+    hospital_id = metadata.get('hospital_id')
+    
+    # Determine hospital
+    if hospital_id:
+        hospital = db.query(Hospital).filter(Hospital.id == hospital_id).first()
+        if not hospital:
+            raise HTTPException(status_code=400, detail="Hospital not found")
+    else:
+        # Get a default hospital for the appointment
+        hospital = db.query(Hospital).filter(Hospital.is_verified == True).first()
+        if not hospital:
+            raise HTTPException(status_code=400, detail="No verified hospitals available")
+        hospital_id = hospital.id
     
     # Create appointment
     appointment = Appointment(
         user_id=current_user.id,
-        hospital_id=default_hospital.id,
+        hospital_id=hospital_id,
         service_id=service_id,
         appointment_date=appointment_date,
         status='confirmed',

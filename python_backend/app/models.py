@@ -16,16 +16,48 @@ class UserType(enum.Enum):
     HOSPITAL = "hospital"
     ADMIN = "admin"
 
-class ServiceType(enum.Enum):
-    SPERM_DONATION = "sperm_donation"
-    EGG_DONATION = "egg_donation"
-    SURROGACY = "surrogacy"
+class ServiceCategory(enum.Enum):
+    IVF = "IVF"
+    IUI = "IUI"
+    FERTILITY_TESTING = "Fertility_Testing"
+    CONSULTATION = "Consultation"
+    EGG_FREEZING = "Egg_Freezing"
+    OTHER = "Other"
+
+class Service(Base):
+    __tablename__ = "services"
+
+    id = Column(Integer, primary_key=True, index=True)
+    hospital_id = Column(Integer, ForeignKey("hospitals.id"), index=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    price = Column(DECIMAL(10, 2), nullable=False, default=0.00)
+    duration_minutes = Column(Integer, default=60)
+    category = Column(Enum(ServiceCategory), nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_featured = Column(Boolean, default=False, index=True)
+    service_type = Column(String(50))
+    view_count = Column(Integer, default=0)
+    booking_count = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    hospital = relationship("Hospital", back_populates="services")
+    appointments = relationship("Appointment", back_populates="service")
+    
+    def validate_price(self):
+        """Validate that price is a positive number"""
+        if self.price is not None and self.price <= 0:
+            raise ValueError("Service price must be a positive number")
+
 
 class AppointmentStatus(enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    NO_SHOW = "no_show"
 
 class PaymentStatus(enum.Enum):
     PENDING = "pending"
@@ -83,6 +115,7 @@ class User(Base):
     payments = relationship("Payment", back_populates="user")
     medical_records = relationship("MedicalRecord", foreign_keys="MedicalRecord.user_id", back_populates="user")
     wallet_transactions = relationship("WalletTransaction", back_populates="user")
+    reviews = relationship("Review", back_populates="user")
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -124,40 +157,30 @@ class Hospital(Base):
     services_offered = Column(JSON)  # List of services
     is_verified = Column(Boolean, default=False)
     rating = Column(DECIMAL(3, 2), default=0.0)
+    total_reviews = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
     # Relationships
     user = relationship("User")
     appointments = relationship("Appointment", back_populates="hospital")
-
-class Service(Base):
-    __tablename__ = "services"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    description = Column(Text)
-    price = Column(DECIMAL(10, 2), nullable=False, default=0.00)
-    duration_minutes = Column(Integer, default=60)
-    is_active = Column(Boolean, default=True)
-    service_type = Column(String(50))
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-    
-    # Relationships
-    appointments = relationship("Appointment", back_populates="service")
+    services = relationship("Service", back_populates="hospital")
+    reviews = relationship("Review", back_populates="hospital")
 
 class Appointment(Base):
     __tablename__ = "appointments"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    hospital_id = Column(Integer, ForeignKey("hospitals.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    hospital_id = Column(Integer, ForeignKey("hospitals.id"), index=True)
     service_id = Column(Integer, ForeignKey("services.id"))
-    appointment_date = Column(DateTime, nullable=False)
-    status = Column(Enum(AppointmentStatus), default=AppointmentStatus.PENDING)
+    appointment_date = Column(DateTime, nullable=False, index=True)
+    status = Column(Enum(AppointmentStatus), default=AppointmentStatus.PENDING, index=True)
     notes = Column(Text)
     price = Column(DECIMAL(10, 2))
+    cancellation_reason = Column(Text)
+    cancelled_at = Column(DateTime)
+    reserved_until = Column(DateTime, index=True)  # For 10-minute reservation hold
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
@@ -166,6 +189,7 @@ class Appointment(Base):
     hospital = relationship("Hospital", back_populates="appointments")
     service = relationship("Service", back_populates="appointments")
     payment = relationship("Payment", back_populates="appointment", uselist=False)
+    review = relationship("Review", back_populates="appointment", uselist=False)
 
 class Message(Base):
     __tablename__ = "messages"
@@ -291,3 +315,42 @@ class Notification(Base):
     
     # Relationships
     user = relationship("User")
+
+class Review(Base):
+    __tablename__ = "reviews"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=False, index=True)
+    appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=False)
+    rating = Column(Integer, nullable=False)
+    comment = Column(Text)
+    is_flagged = Column(Boolean, default=False, index=True)
+    flag_count = Column(Integer, default=0)
+    is_hidden = Column(Boolean, default=False)
+    hospital_response = Column(Text)
+    hospital_response_date = Column(DateTime)
+    is_immutable = Column(Boolean, default=False)
+    immutable_after = Column(DateTime)  # 48 hours after creation
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User")
+    hospital = relationship("Hospital")
+    appointment = relationship("Appointment")
+    
+    def validate_rating(self):
+        """Validate that rating is between 1 and 5"""
+        if self.rating is not None and (self.rating < 1 or self.rating > 5):
+            raise ValueError("Rating must be between 1 and 5")
+    
+    def validate_comment_length(self):
+        """Validate that comment does not exceed 1000 characters"""
+        if self.comment is not None and len(self.comment) > 1000:
+            raise ValueError("Comment must not exceed 1000 characters")
+    
+    def validate_hospital_response_length(self):
+        """Validate that hospital response does not exceed 500 characters"""
+        if self.hospital_response is not None and len(self.hospital_response) > 500:
+            raise ValueError("Hospital response must not exceed 500 characters")

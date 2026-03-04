@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/models/hospital_model.dart';
+import '../../core/models/service_model.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/appointments/screens/appointments_screen.dart';
 import '../../features/appointments/screens/book_appointment_screen.dart';
+import '../../features/appointments/screens/appointment_confirmation_screen.dart';
 import '../../features/hospitals/screens/hospitals_screen.dart';
 import '../../features/messages/screens/messages_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
@@ -89,6 +92,19 @@ class AppRouter {
                 builder: (context, state) {
                   final hospitalId = state.uri.queryParameters['hospitalId'];
                   return BookAppointmentScreen(hospitalId: hospitalId);
+                },
+              ),
+              GoRoute(
+                path: '/confirmation',
+                name: 'appointment-confirmation',
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>;
+                  return AppointmentConfirmationScreen(
+                    hospital: extra['hospital'] as Hospital,
+                    service: extra['service'] as Service,
+                    appointmentDate: extra['appointmentDate'] as DateTime,
+                    timeSlot: extra['timeSlot'] as String,
+                  );
                 },
               ),
               GoRoute(

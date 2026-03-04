@@ -125,8 +125,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     try {
       final response = await ApiService.get('/services');
       if (response.statusCode == 200) {
+        // API returns {services: [...], total: X, page: Y, limit: Z}
+        final responseData = response.data;
+        final List<dynamic> servicesData = responseData is Map 
+            ? (responseData['services'] as List<dynamic>? ?? [])
+            : (responseData as List<dynamic>? ?? []);
+        
         setState(() {
-          _services = response.data;
+          _services = servicesData;
         });
       }
     } catch (e) {
@@ -741,7 +747,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         return;
       }
       final gatewaysResp = await ApiService.post(
-        '/booking/initiate-booking?service_id=$serviceId&appointment_date=${Uri.encodeComponent(appointmentDateTime.toIso8601String())}',
+        '/booking/initiate-booking?service_id=$serviceId&hospital_id=$_selectedHospital&appointment_date=${Uri.encodeComponent(appointmentDateTime.toIso8601String())}',
         data: {},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
@@ -765,7 +771,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       }
       // 3. Initiate payment/booking
       final paymentResp = await ApiService.post(
-        '/booking/initiate-booking?service_id=$serviceId&appointment_date=${Uri.encodeComponent(appointmentDateTime.toIso8601String())}&payment_method=$selectedGateway',
+        '/booking/initiate-booking?service_id=$serviceId&hospital_id=$_selectedHospital&appointment_date=${Uri.encodeComponent(appointmentDateTime.toIso8601String())}&payment_method=$selectedGateway',
         data: {},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
