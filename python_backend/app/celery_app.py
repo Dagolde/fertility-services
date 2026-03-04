@@ -13,7 +13,7 @@ celery_app = Celery(
     "fertility_services",
     broker=REDIS_URL,
     backend=REDIS_URL,
-    include=["app.tasks.appointment_tasks"]
+    include=["app.tasks.appointment_tasks", "app.tasks.notification_tasks"]
 )
 
 # Celery configuration
@@ -46,5 +46,20 @@ celery_app.conf.beat_schedule = {
     "cleanup-expired-reservations": {
         "task": "app.tasks.appointment_tasks.cleanup_expired_reservations",
         "schedule": crontab(minute="*/5"),  # Every 5 minutes
+    },
+    # Send scheduled notifications every minute
+    "send-scheduled-notifications": {
+        "task": "app.tasks.notification_tasks.send_scheduled_notifications",
+        "schedule": crontab(minute="*"),  # Every minute
+    },
+    # Retry failed notifications every 5 minutes
+    "retry-failed-notifications": {
+        "task": "app.tasks.notification_tasks.retry_failed_notifications",
+        "schedule": crontab(minute="*/5"),  # Every 5 minutes
+    },
+    # Clean up old notifications daily at 2 AM
+    "cleanup-old-notifications": {
+        "task": "app.tasks.notification_tasks.cleanup_old_notifications",
+        "schedule": crontab(hour=2, minute=0),  # Daily at 2:00 AM
     },
 }

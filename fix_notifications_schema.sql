@@ -1,0 +1,27 @@
+USE fertility_services;
+
+-- Update existing rows to have channel if NULL
+UPDATE notifications SET channel = 'PUSH' WHERE channel IS NULL;
+
+-- Make user_id and channel NOT NULL
+ALTER TABLE notifications MODIFY COLUMN user_id INT NOT NULL;
+ALTER TABLE notifications MODIFY COLUMN channel ENUM('PUSH', 'EMAIL', 'SMS') NOT NULL;
+
+-- Update notification_type to ENUM (handle existing data first)
+UPDATE notifications SET notification_type = 'SYSTEM' WHERE notification_type NOT IN ('APPOINTMENT_CONFIRMATION', 'APPOINTMENT_REMINDER', 'APPOINTMENT_CANCELLED', 'APPOINTMENT_RESCHEDULED', 'PAYMENT_CONFIRMATION', 'PAYMENT_REFUND', 'MESSAGE_RECEIVED', 'REVIEW_RESPONSE', 'MARKETING', 'SYSTEM') OR notification_type IS NULL;
+
+ALTER TABLE notifications MODIFY COLUMN notification_type ENUM('APPOINTMENT_CONFIRMATION', 'APPOINTMENT_REMINDER', 'APPOINTMENT_CANCELLED', 'APPOINTMENT_RESCHEDULED', 'PAYMENT_CONFIRMATION', 'PAYMENT_REFUND', 'MESSAGE_RECEIVED', 'REVIEW_RESPONSE', 'MARKETING', 'SYSTEM') NOT NULL;
+
+-- Create notification_preferences table
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  channel ENUM('PUSH', 'EMAIL', 'SMS') NOT NULL,
+  notification_type ENUM('APPOINTMENT_CONFIRMATION', 'APPOINTMENT_REMINDER', 'APPOINTMENT_CANCELLED', 'APPOINTMENT_RESCHEDULED', 'PAYMENT_CONFIRMATION', 'PAYMENT_REFUND', 'MESSAGE_RECEIVED', 'REVIEW_RESPONSE', 'MARKETING', 'SYSTEM') NOT NULL,
+  enabled BOOLEAN DEFAULT TRUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  UNIQUE KEY uq_user_channel_type (user_id, channel, notification_type),
+  INDEX ix_notification_preferences_user_id (user_id)
+);

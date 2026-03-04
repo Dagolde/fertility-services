@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, JSON, UniqueConstraint
 from sqlalchemy.types import DECIMAL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -302,19 +302,72 @@ class PaymentGatewayConfig(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
+class NotificationStatus(enum.Enum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+    DELIVERED = "delivered"
+
+class NotificationChannel(enum.Enum):
+    PUSH = "push"
+    EMAIL = "email"
+    SMS = "sms"
+
+class NotificationType(enum.Enum):
+    APPOINTMENT_CONFIRMATION = "appointment_confirmation"
+    APPOINTMENT_REMINDER = "appointment_reminder"
+    APPOINTMENT_CANCELLED = "appointment_cancelled"
+    APPOINTMENT_RESCHEDULED = "appointment_rescheduled"
+    PAYMENT_CONFIRMATION = "payment_confirmation"
+    PAYMENT_REFUND = "payment_refund"
+    MESSAGE_RECEIVED = "message_received"
+    REVIEW_RESPONSE = "review_response"
+    MARKETING = "marketing"
+    SYSTEM = "system"
+
 class Notification(Base):
     __tablename__ = "notifications"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
-    notification_type = Column(String(50))
+    notification_type = Column(Enum(NotificationType), nullable=False)
+    channel = Column(Enum(NotificationChannel), nullable=False)
+    status = Column(Enum(NotificationStatus), default=NotificationStatus.PENDING, index=True)
+    retry_count = Column(Integer, default=0)
+    scheduled_at = Column(DateTime, index=True)
+    sent_at = Column(DateTime)
+    delivered_at = Column(DateTime)
+    failed_reason = Column(Text)
+    data = Column(JSON)  # Additional data like appointment_id, hospital_id, etc.
     is_read = Column(Boolean, default=False)
+    read_at = Column(DateTime)
     created_at = Column(DateTime, server_default=func.now())
-    
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
     # Relationships
     user = relationship("User")
+
+class NotificationPreferences(Base):
+    __tablename__ = "notification_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    channel = Column(Enum(NotificationChannel), nullable=False)
+    notification_type = Column(Enum(NotificationType), nullable=False)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User")
+
+    # Unique constraint to prevent duplicate preferences
+    __table_args__ = (
+        UniqueConstraint('user_id', 'channel', 'notification_type', name='uq_user_channel_type'),
+    )
+
 
 class Review(Base):
     __tablename__ = "reviews"

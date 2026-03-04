@@ -7,7 +7,7 @@ from decouple import config
 
 from .database import engine, get_db
 from .models import Base
-from .routers import auth, users, hospitals, services, appointments, messages, payments, payment_gateways, admin, enhanced_admin, medical_records, booking, wallet, reviews
+from .routers import auth, users, hospitals, services, appointments, messages, payments, payment_gateways, admin, enhanced_admin, medical_records, booking, wallet, reviews, notifications
 from .auth import get_current_user
 
 # Configuration
@@ -74,6 +74,7 @@ app.include_router(medical_records.router, prefix=f"{API_V1_STR}/medical-records
 app.include_router(booking.router, prefix=f"{API_V1_STR}/booking", tags=["Booking"])
 app.include_router(wallet.router, prefix=f"{API_V1_STR}/wallet", tags=["Wallet"])
 app.include_router(reviews.router, prefix=f"{API_V1_STR}/reviews", tags=["Reviews"])
+app.include_router(notifications.router, tags=["Notifications"])
 
 if __name__ == "__main__":
     import uvicorn
