@@ -1181,8 +1181,9 @@ def display_medical_record_card(record, user, index):
         
         with col4:
             # Verification actions
-            # Create a unique key using record ID and index - simpler and guaranteed unique
-            unique_key_suffix = f"{record['id']}_{index}"
+            # Create a truly unique key using record ID, index, and Python's id() for the record object
+            # This ensures uniqueness even if the same record appears in multiple tabs
+            unique_key_suffix = f"{record['id']}_{index}_{id(record)}"
             
             if not verification_status:
                 if st.button("✅ Verify", key=f"verify_record_{unique_key_suffix}"):
