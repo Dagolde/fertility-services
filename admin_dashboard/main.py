@@ -2451,6 +2451,195 @@ def show_wallet_management():
         else:
             st.error("No users found")
 
+# Notification Management Functions
+
+def get_all_notifications(skip=0, limit=100):
+    try:
+        response = requests.get(
+            f"{API_BASE_URL}/notifications",
+            params={"skip": skip, "limit": limit},
+            headers=get_headers()
+        )
+        return response.json() if response.status_code == 200 else []
+    except Exception as e:
+        st.error(f"Error fetching notifications: {str(e)}")
+        return []
+
+def get_notification_stats():
+    try:
+        response = requests.get(f"{API_BASE_URL}/notifications/unread-count", headers=get_headers())
+        return response.json() if response.status_code == 200 else {"unread_count": 0}
+    except Exception as e:
+        st.error(f"Error fetching notification stats: {str(e)}")
+        return {"unread_count": 0}
+
+def send_test_notification(notification_data):
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/notifications/test",
+            json=notification_data,
+            headers=get_headers()
+        )
+        return response.status_code == 200
+    except Exception as e:
+        st.error(f"Error sending test notification: {str(e)}")
+        return False
+
+def show_notifications_management():
+    """Display notification management interface"""
+    st.markdown('<h1 class="main-header">🔔 Notification Management</h1>', unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["All Notifications", "Send Test Notification", "Statistics"])
+    
+    with tab1:
+        st.subheader("All Notifications")
+        
+        # Fetch notifications
+        notifications = get_all_notifications(limit=50)
+        
+        if notifications:
+            st.markdown(f"**Showing {len(notifications)} recent notifications**")
+            
+            # Filter options
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                filter_channel = st.selectbox("Filter by Channel", ["All", "PUSH", "EMAIL", "SMS"])
+            with col2:
+                filter_status = st.selectbox("Filter by Status", ["All", "PENDING", "SENT", "FAILED", "DELIVERED"])
+            with col3:
+                filter_type = st.selectbox("Filter by Type", ["All", "APPOINTMENT_CONFIRMATION", "APPOINTMENT_REMINDER", "PAYMENT_SUCCESS", "PAYMENT_FAILED"])
+            
+            # Apply filters
+            filtered_notifications = notifications
+            if filter_channel != "All":
+                filtered_notifications = [n for n in filtered_notifications if n.get('channel') == filter_channel]
+            if filter_status != "All":
+                filtered_notifications = [n for n in filtered_notifications if n.get('status') == filter_status]
+            if filter_type != "All":
+                filtered_notifications = [n for n in filtered_notifications if n.get('notification_type') == filter_type]
+            
+            # Display notifications
+            for notification in filtered_notifications:
+                status_emoji = {
+                    "PENDING": "⏳",
+                    "SENT": "✅",
+                    "FAILED": "❌",
+                    "DELIVERED": "📬"
+                }.get(notification.get('status', 'PENDING'), "❓")
+                
+                channel_emoji = {
+                    "PUSH": "📱",
+                    "EMAIL": "📧",
+                    "SMS": "💬"
+                }.get(notification.get('channel', 'PUSH'), "📢")
+                
+                with st.expander(f"{status_emoji} {channel_emoji} {notification.get('title', 'No Title')} - {notification.get('created_at', 'N/A')}"):
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        st.markdown(f"**ID:** {notification.get('id')}")
+                        st.markdown(f"**User ID:** {notification.get('user_id')}")
+                        st.markdown(f"**Type:** {notification.get('notification_type')}")
+                        st.markdown(f"**Title:** {notification.get('title')}")
+                        st.markdown(f"**Message:**")
+                        st.write(notification.get('message', 'No message'))
+                        
+                        if notification.get('data'):
+                            st.markdown("**Additional Data:**")
+                            st.json(notification.get('data'))
+                    
+                    with col2:
+                        st.markdown(f"**Channel:** {notification.get('channel')}")
+                        st.markdown(f"**Status:** {notification.get('status')}")
+                        st.markdown(f"**Retry Count:** {notification.get('retry_count', 0)}")
+                        
+                        if notification.get('scheduled_at'):
+                            st.markdown(f"**Scheduled:** {notification.get('scheduled_at')}")
+                        if notification.get('sent_at'):
+                            st.markdown(f"**Sent:** {notification.get('sent_at')}")
+                        if notification.get('delivered_at'):
+                            st.markdown(f"**Delivered:** {notification.get('delivered_at')}")
+                        if notification.get('failed_reason'):
+                            st.error(f"**Failed Reason:** {notification.get('failed_reason')}")
+                        if notification.get('read_at'):
+                            st.markdown(f"**Read:** {notification.get('read_at')}")
+        else:
+            st.info("No notifications found")
+    
+    with tab2:
+        st.subheader("Send Test Notification")
+        
+        with st.form("test_notification_form"):
+            user_id = st.number_input("User ID", min_value=1, value=1)
+            channel = st.selectbox("Channel", ["PUSH", "EMAIL", "SMS"])
+            notification_type = st.selectbox("Type", [
+                "APPOINTMENT_CONFIRMATION",
+                "APPOINTMENT_REMINDER",
+                "PAYMENT_SUCCESS",
+                "PAYMENT_FAILED",
+                "GENERAL"
+            ])
+            title = st.text_input("Title", value="Test Notification")
+            message = st.text_area("Message", value="This is a test notification from the admin dashboard.")
+            
+            submitted = st.form_submit_button("Send Test Notification")
+            
+            if submitted:
+                notification_data = {
+                    "user_id": user_id,
+                    "channel": channel,
+                    "notification_type": notification_type,
+                    "title": title,
+                    "message": message
+                }
+                
+                if send_test_notification(notification_data):
+                    st.success("✅ Test notification sent successfully!")
+                else:
+                    st.error("❌ Failed to send test notification")
+    
+    with tab3:
+        st.subheader("Notification Statistics")
+        
+        # Get stats
+        stats = get_notification_stats()
+        
+        # Display stats
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Unread Notifications", stats.get('unread_count', 0))
+        
+        with col2:
+            # Count by status
+            notifications = get_all_notifications(limit=1000)
+            sent_count = len([n for n in notifications if n.get('status') == 'SENT'])
+            st.metric("Sent Notifications", sent_count)
+        
+        with col3:
+            failed_count = len([n for n in notifications if n.get('status') == 'FAILED'])
+            st.metric("Failed Notifications", failed_count)
+        
+        # Channel breakdown
+        st.markdown("### Notifications by Channel")
+        channel_counts = {}
+        for n in notifications:
+            channel = n.get('channel', 'UNKNOWN')
+            channel_counts[channel] = channel_counts.get(channel, 0) + 1
+        
+        if channel_counts:
+            st.bar_chart(channel_counts)
+        
+        # Type breakdown
+        st.markdown("### Notifications by Type")
+        type_counts = {}
+        for n in notifications:
+            ntype = n.get('notification_type', 'UNKNOWN')
+            type_counts[ntype] = type_counts.get(ntype, 0) + 1
+        
+        if type_counts:
+            st.bar_chart(type_counts)
+
 def show_reviews_management():
     """Display review management interface"""
     st.markdown('<h1 class="main-header">📝 Review Management</h1>', unsafe_allow_html=True)
@@ -2684,8 +2873,8 @@ def main():
         
         selected = option_menu(
             menu_title=None,
-            options=["Dashboard", "Users", "Medical Records", "Hospitals", "Doctors", "Services", "Appointments", "Payments", "Payment Gateways", "Wallet Management", "Reviews", "Logout"],
-            icons=["speedometer2", "people", "clipboard-check", "hospital", "person-badge", "gear", "calendar-check", "credit-card", "credit-card-2", "wallet", "star", "box-arrow-right"],
+            options=["Dashboard", "Users", "Medical Records", "Hospitals", "Doctors", "Services", "Appointments", "Payments", "Payment Gateways", "Wallet Management", "Reviews", "Notifications", "Logout"],
+            icons=["speedometer2", "people", "clipboard-check", "hospital", "person-badge", "gear", "calendar-check", "credit-card", "credit-card-2", "wallet", "star", "bell", "box-arrow-right"],
             menu_icon="cast",
             default_index=0,
         )
@@ -2718,6 +2907,8 @@ def main():
         show_wallet_management()
     elif selected == "Reviews":
         show_reviews_management()
+    elif selected == "Notifications":
+        show_notifications_management()
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ import '../../../shared/widgets/custom_button.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/home_provider.dart';
 import '../../messages/providers/messages_provider.dart';
+import '../../notifications/providers/notification_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,10 +40,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadHomeData() async {
     final homeProvider = Provider.of<HomeProvider>(context, listen: false);
     final messagesProvider = Provider.of<MessagesProvider>(context, listen: false);
+    final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
     
     await Future.wait([
       homeProvider.loadHomeData(),
       messagesProvider.loadUnreadCount(),
+      notificationProvider.loadUnreadCount(),
     ]);
   }
 
@@ -83,9 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(int unreadCount) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, _) {
+    return Consumer2<AuthProvider, NotificationProvider>(
+      builder: (context, authProvider, notificationProvider, _) {
         final user = authProvider.currentUser;
+        final notificationCount = notificationProvider.unreadCount;
         return Container(
           padding: const EdgeInsets.all(AppConfig.defaultPadding),
           decoration: BoxDecoration(
@@ -148,10 +152,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Stack(
                 children: [
                   IconButton(
-                    onPressed: () => context.push('/messages'),
+                    onPressed: () => context.push('/notifications'),
                     icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                   ),
-                  if (unreadCount > 0)
+                  if (notificationCount > 0)
                     Positioned(
                       right: 8,
                       top: 8,
@@ -166,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           minHeight: 16,
                         ),
                         child: Text(
-                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          notificationCount > 99 ? '99+' : notificationCount.toString(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 10,
