@@ -2451,6 +2451,225 @@ def show_wallet_management():
         else:
             st.error("No users found")
 
+def show_reviews_management():
+    """Display review management interface"""
+    st.markdown('<h1 class="main-header">📝 Review Management</h1>', unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["Flagged Reviews", "All Reviews", "Statistics"])
+    
+    with tab1:
+        st.subheader("Flagged Reviews Requiring Moderation")
+        
+        # Fetch flagged reviews
+        try:
+            response = requests.get(
+                f"{API_BASE_URL}/reviews",
+                params={"include_hidden": True},
+                headers=get_headers()
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                all_reviews = data.get('reviews', [])
+                flagged_reviews = [r for r in all_reviews if r.get('is_flagged', False)]
+                
+                if flagged_reviews:
+                    st.markdown(f"**{len(flagged_reviews)} flagged reviews**")
+                    
+                    for review in flagged_reviews:
+                        with st.expander(f"Review #{review.get('id')} - {review.get('flag_count', 0)} flags"):
+                            col1, col2 = st.columns([2, 1])
+                            
+                            with col1:
+                                # Review details
+                                st.markdown(f"**Hospital ID:** {review.get('hospital_id')}")
+                                st.markdown(f"**Rating:** {'⭐' * review.get('rating', 0)}")
+                                st.markdown(f"**Comment:**")
+                                st.write(review.get('comment', 'No comment'))
+                                st.markdown(f"**Posted:** {review.get('created_at', 'N/A')}")
+                                st.markdown(f"**Flag Count:** {review.get('flag_count', 0)}")
+                                st.markdown(f"**Hidden:** {'Yes' if review.get('is_hidden') else 'No'}")
+                                
+                                if review.get('hospital_response'):
+                                    st.markdown("**Hospital Response:**")
+                                    st.info(review.get('hospital_response'))
+                            
+                            with col2:
+                                st.markdown("**Moderation Actions**")
+                                
+                                # Action buttons
+                                if st.button("✅ Approve (Show)", key=f"approve_{review.get('id')}"):
+                                    try:
+                                        mod_response = requests.put(
+                                            f"{API_BASE_URL}/reviews/{review.get('id')}/moderate",
+                                            json={"action": "show", "reason": "Approved by admin"},
+                                            headers=get_headers()
+                                        )
+                                        if mod_response.status_code == 200:
+                                            st.success("Review approved!")
+                                            st.rerun()
+                                        else:
+                                            st.error(f"Failed to approve: {mod_response.status_code}")
+                                    except Exception as e:
+                                        st.error(f"Error: {str(e)}")
+                                
+                                if st.button("🚫 Hide", key=f"hide_{review.get('id')}"):
+                                    try:
+                                        mod_response = requests.put(
+                                            f"{API_BASE_URL}/reviews/{review.get('id')}/moderate",
+                                            json={"action": "hide", "reason": "Hidden by admin"},
+                                            headers=get_headers()
+                                        )
+                                        if mod_response.status_code == 200:
+                                            st.success("Review hidden!")
+                                            st.rerun()
+                                        else:
+                                            st.error(f"Failed to hide: {mod_response.status_code}")
+                                    except Exception as e:
+                                        st.error(f"Error: {str(e)}")
+                                
+                                if st.button("🗑️ Delete", key=f"delete_{review.get('id')}"):
+                                    try:
+                                        mod_response = requests.put(
+                                            f"{API_BASE_URL}/reviews/{review.get('id')}/moderate",
+                                            json={"action": "delete", "reason": "Deleted by admin"},
+                                            headers=get_headers()
+                                        )
+                                        if mod_response.status_code == 200:
+                                            st.success("Review deleted!")
+                                            st.rerun()
+                                        else:
+                                            st.error(f"Failed to delete: {mod_response.status_code}")
+                                    except Exception as e:
+                                        st.error(f"Error: {str(e)}")
+                else:
+                    st.success("✅ No flagged reviews requiring moderation")
+            else:
+                st.error(f"Failed to fetch reviews: {response.status_code}")
+        except Exception as e:
+            st.error(f"Error fetching flagged reviews: {str(e)}")
+    
+    with tab2:
+        st.subheader("All Reviews")
+        
+        # Filters
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            filter_hospital = st.number_input("Filter by Hospital ID", min_value=0, value=0, step=1)
+        with col2:
+            filter_rating = st.selectbox("Filter by Rating", ["All", "1", "2", "3", "4", "5"])
+        with col3:
+            show_hidden = st.checkbox("Show Hidden Reviews", value=False)
+        
+        # Fetch reviews
+        try:
+            params = {"include_hidden": show_hidden}
+            if filter_hospital > 0:
+                params["hospital_id"] = filter_hospital
+            if filter_rating != "All":
+                params["rating"] = int(filter_rating)
+            
+            response = requests.get(
+                f"{API_BASE_URL}/reviews",
+                params=params,
+                headers=get_headers()
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                reviews = data.get('reviews', [])
+                
+                if reviews:
+                    # Display reviews in a table
+                    review_data = []
+                    for review in reviews:
+                        review_data.append({
+                            "ID": review.get('id'),
+                            "Hospital ID": review.get('hospital_id'),
+                            "Rating": '⭐' * review.get('rating', 0),
+                            "Comment": review.get('comment', '')[:50] + '...' if len(review.get('comment', '')) > 50 else review.get('comment', ''),
+                            "Flagged": "Yes" if review.get('is_flagged') else "No",
+                            "Hidden": "Yes" if review.get('is_hidden') else "No",
+                            "Flag Count": review.get('flag_count', 0),
+                            "Created": review.get('created_at', 'N/A')[:10]
+                        })
+                    
+                    df = pd.DataFrame(review_data)
+                    st.dataframe(df, use_container_width=True)
+                    
+                    st.markdown(f"**Total Reviews: {len(reviews)}**")
+                else:
+                    st.info("No reviews found")
+            else:
+                st.error(f"Failed to fetch reviews: {response.status_code}")
+        except Exception as e:
+            st.error(f"Error fetching reviews: {str(e)}")
+    
+    with tab3:
+        st.subheader("Review Statistics")
+        
+        # Fetch all reviews for statistics
+        try:
+            response = requests.get(
+                f"{API_BASE_URL}/reviews",
+                params={"include_hidden": True},
+                headers=get_headers()
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                reviews = data.get('reviews', [])
+                
+                if reviews:
+                    # Calculate statistics
+                    total_reviews = len(reviews)
+                    flagged_count = sum(1 for r in reviews if r.get('is_flagged'))
+                    hidden_count = sum(1 for r in reviews if r.get('is_hidden'))
+                    avg_rating = data.get('average_rating', 0)
+                    rating_dist = data.get('rating_distribution', {})
+                    
+                    # Display metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Total Reviews", total_reviews)
+                    with col2:
+                        st.metric("Flagged Reviews", flagged_count)
+                    with col3:
+                        st.metric("Hidden Reviews", hidden_count)
+                    with col4:
+                        st.metric("Average Rating", f"{avg_rating:.2f}")
+                    
+                    # Rating distribution chart
+                    if rating_dist:
+                        st.subheader("Rating Distribution")
+                        rating_df = pd.DataFrame([
+                            {"Rating": f"{k} ⭐", "Count": v}
+                            for k, v in sorted(rating_dist.items(), reverse=True)
+                        ])
+                        fig = px.bar(rating_df, x="Rating", y="Count", title="Reviews by Rating")
+                        st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Reviews over time
+                    st.subheader("Reviews Over Time")
+                    reviews_by_date = {}
+                    for review in reviews:
+                        date = review.get('created_at', '')[:10]
+                        reviews_by_date[date] = reviews_by_date.get(date, 0) + 1
+                    
+                    if reviews_by_date:
+                        time_df = pd.DataFrame([
+                            {"Date": k, "Count": v}
+                            for k, v in sorted(reviews_by_date.items())
+                        ])
+                        fig = px.line(time_df, x="Date", y="Count", title="Reviews Over Time")
+                        st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No reviews available for statistics")
+            else:
+                st.error(f"Failed to fetch reviews: {response.status_code}")
+        except Exception as e:
+            st.error(f"Error fetching review statistics: {str(e)}")
+
 # Main app
 def main():
     # Check authentication
@@ -2465,8 +2684,8 @@ def main():
         
         selected = option_menu(
             menu_title=None,
-            options=["Dashboard", "Users", "Medical Records", "Hospitals", "Doctors", "Services", "Appointments", "Payments", "Payment Gateways", "Wallet Management", "Logout"],
-            icons=["speedometer2", "people", "clipboard-check", "hospital", "person-badge", "gear", "calendar-check", "credit-card", "credit-card-2", "wallet", "box-arrow-right"],
+            options=["Dashboard", "Users", "Medical Records", "Hospitals", "Doctors", "Services", "Appointments", "Payments", "Payment Gateways", "Wallet Management", "Reviews", "Logout"],
+            icons=["speedometer2", "people", "clipboard-check", "hospital", "person-badge", "gear", "calendar-check", "credit-card", "credit-card-2", "wallet", "star", "box-arrow-right"],
             menu_icon="cast",
             default_index=0,
         )
@@ -2497,6 +2716,8 @@ def main():
         show_payment_gateways_management()
     elif selected == "Wallet Management":
         show_wallet_management()
+    elif selected == "Reviews":
+        show_reviews_management()
 
 
 if __name__ == "__main__":

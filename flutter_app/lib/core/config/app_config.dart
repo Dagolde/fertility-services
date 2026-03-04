@@ -2,7 +2,7 @@ class AppConfig {
   // API Configuration
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.1.106:8000/api/v1'
+    defaultValue: 'http://192.168.1.107:8000/api/v1'
   );
   
   static const String apiBaseUrl = baseUrl; // Alias for baseUrl
@@ -10,7 +10,7 @@ class AppConfig {
   // WebSocket Configuration
   static const String websocketUrl = String.fromEnvironment(
     'WEBSOCKET_URL',
-    defaultValue: 'ws://192.168.1.106:8000/ws'
+    defaultValue: 'ws://192.168.1.107:8000/ws'
   );
   
   // App Configuration

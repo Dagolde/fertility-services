@@ -18,7 +18,7 @@ from ..schemas import (
     ReviewFlagRequest, ReviewRespondRequest, ReviewModerateRequest,
     ReviewListResponse
 )
-from ..auth import get_current_active_user, get_admin_user, get_hospital_user
+from ..auth import get_current_active_user, get_admin_user, get_hospital_user, get_optional_current_user
 from ..services.review_service import ReviewService
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ async def list_reviews(
     include_hidden: bool = Query(False, description="Include hidden reviews (admin only)"),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(20, ge=1, le=50, description="Items per page"),
-    current_user: Optional[User] = Depends(get_current_active_user),
+    current_user: Optional[User] = Depends(get_optional_current_user),
     review_service: ReviewService = Depends(get_review_service)
 ):
     """

@@ -5,7 +5,6 @@ import '../../../core/services/storage_service.dart';
 
 class ServiceProvider with ChangeNotifier {
   final ServicesRepository _repository = ServicesRepository();
-  final StorageService _storageService = StorageService();
   
   List<Service> _services = [];
   List<Service> _filteredServices = [];
@@ -36,17 +35,17 @@ class ServiceProvider with ChangeNotifier {
   /// Load services from cache for offline access
   Future<void> _loadCachedData() async {
     try {
-      final cachedServices = await _storageService.getCachedData(_cacheKeyServices);
-      if (cachedServices != null) {
-        _services = (cachedServices as List)
+      final cachedServicesMap = StorageService.getCacheData(_cacheKeyServices, maxAge: _cacheDuration);
+      if (cachedServicesMap != null && cachedServicesMap['services'] != null) {
+        _services = (cachedServicesMap['services'] as List)
             .map((data) => Service.fromJson(data))
             .toList();
         _applyFiltersAndSort();
       }
       
-      final cachedFeatured = await _storageService.getCachedData(_cacheKeyFeatured);
-      if (cachedFeatured != null) {
-        _featuredServices = (cachedFeatured as List)
+      final cachedFeaturedMap = StorageService.getCacheData(_cacheKeyFeatured, maxAge: _cacheDuration);
+      if (cachedFeaturedMap != null && cachedFeaturedMap['services'] != null) {
+        _featuredServices = (cachedFeaturedMap['services'] as List)
             .map((data) => Service.fromJson(data))
             .toList();
       }
@@ -69,12 +68,9 @@ class ServiceProvider with ChangeNotifier {
       final servicesData = await _repository.getServices();
       _services = servicesData.map((data) => Service.fromJson(data)).toList();
       
-      // Cache the data
-      await _storageService.cacheData(
-        _cacheKeyServices,
-        servicesData,
-        duration: _cacheDuration,
-      );
+      // Cache the data - convert list to map for storage
+      final cacheMap = {'services': servicesData};
+      await StorageService.setCacheData(_cacheKeyServices, cacheMap);
       
       _applyFiltersAndSort();
       _isLoading = false;
@@ -92,12 +88,9 @@ class ServiceProvider with ChangeNotifier {
       final servicesData = await _repository.getFeaturedServices();
       _featuredServices = servicesData.map((data) => Service.fromJson(data)).toList();
       
-      // Cache the data
-      await _storageService.cacheData(
-        _cacheKeyFeatured,
-        servicesData,
-        duration: _cacheDuration,
-      );
+      // Cache the data - convert list to map for storage
+      final cacheMap = {'services': servicesData};
+      await StorageService.setCacheData(_cacheKeyFeatured, cacheMap);
       
       notifyListeners();
     } catch (e) {
@@ -177,8 +170,8 @@ class ServiceProvider with ChangeNotifier {
   
   /// Clear cache
   Future<void> clearCache() async {
-    await _storageService.clearCache(_cacheKeyServices);
-    await _storageService.clearCache(_cacheKeyFeatured);
+    await StorageService.deleteHive('cache_$_cacheKeyServices');
+    await StorageService.deleteHive('cache_$_cacheKeyFeatured');
     _services = [];
     _filteredServices = [];
     _featuredServices = [];

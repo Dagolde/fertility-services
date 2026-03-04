@@ -28,6 +28,8 @@ import '../../features/home/screens/activity_screen.dart';
 import '../../features/messages/screens/chat_screen.dart';
 import '../../features/messages/screens/user_search_screen.dart';
 import '../../features/services/screens/service_details_screen.dart';
+import '../../features/reviews/screens/reviews_listing_screen.dart';
+import '../../features/reviews/screens/review_submission_screen.dart';
 import '../../shared/widgets/main_navigation.dart';
 
 class AppRouter {
@@ -130,6 +132,18 @@ class AppRouter {
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   return HospitalDetailsScreen(hospitalId: id);
+                },
+              ),
+              GoRoute(
+                path: '/:id/reviews',
+                name: 'hospital-reviews',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return ReviewsListingScreen(
+                    hospitalId: int.parse(id),
+                    hospitalName: extra?['hospitalName'] as String? ?? 'Hospital',
+                  );
                 },
               ),
               GoRoute(
@@ -314,6 +328,20 @@ class AppRouter {
         path: '/about',
         name: 'about',
         builder: (context, state) => const AboutScreen(),
+      ),
+      
+      // Review submission (standalone route)
+      GoRoute(
+        path: '/reviews/submit',
+        name: 'submit-review',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return ReviewSubmissionScreen(
+            hospitalId: extra?['hospitalId'] as int? ?? 0,
+            appointmentId: extra?['appointmentId'] as int? ?? 0,
+            hospitalName: extra?['hospitalName'] as String? ?? 'Hospital',
+          );
+        },
       ),
     ],
     errorBuilder: (context, state) => const NotFoundScreen(),

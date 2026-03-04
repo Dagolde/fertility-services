@@ -7,7 +7,6 @@ import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
 import 'core/services/api_service.dart';
 import 'core/services/storage_service.dart';
-import 'core/services/notification_service_simple.dart';
 
 // Features
 import 'features/auth/providers/auth_provider.dart';
@@ -16,6 +15,7 @@ import 'features/appointments/providers/appointments_provider.dart';
 import 'features/hospitals/providers/hospitals_provider.dart';
 import 'features/messages/providers/messages_provider.dart';
 import 'features/wallet/providers/wallet_provider.dart';
+import 'features/reviews/providers/review_provider.dart';
 import 'core/providers/users_provider.dart';
 
 // Shared
@@ -150,6 +150,7 @@ class _FertilityServicesAppState extends State<FertilityServicesApp> {
         ChangeNotifierProvider(create: (_) => MessagesProvider()),
         ChangeNotifierProvider(create: (_) => UsersProvider()),
         ChangeNotifierProvider(create: (_) => WalletProvider()),
+        ChangeNotifierProvider(create: (_) => ReviewProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {

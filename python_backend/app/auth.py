@@ -86,6 +86,28 @@ def get_current_active_user(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Get the current user if authenticated, otherwise return None."""
+    if credentials is None:
+        return None
+    
+    try:
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        token_data = verify_token(credentials.credentials, credentials_exception)
+        user = db.query(User).filter(User.email == token_data.email).first()
+        if user and user.is_active:
+            return user
+        return None
+    except:
+        return None
+
 def get_admin_user(current_user: User = Depends(get_current_active_user)):
     """Get the current user if they are an admin."""
     if current_user.user_type.value != "admin":

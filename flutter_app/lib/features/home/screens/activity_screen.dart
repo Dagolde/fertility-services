@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/custom_button.dart';
-import '../../../core/config/app_config.dart';
 import '../providers/home_provider.dart';
 
 class ActivityScreen extends StatefulWidget {
@@ -72,7 +71,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 1),
@@ -130,7 +129,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         });
       },
       backgroundColor: Colors.grey[200],
-      selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+      selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
       checkmarkColor: Theme.of(context).primaryColor,
     );
   }
@@ -190,7 +189,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _getActivityColor(activity['color']).withOpacity(0.1),
+                  color: _getActivityColor(activity['color']).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -279,7 +278,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         }
         break;
       case 'wallet':
-        final transaction = activity['data'] as Map<String, dynamic>;
+        final transaction = activity['data'] as Map<String, dynamic>?;
         if (transaction != null) {
           switch (transaction['status']?.toLowerCase()) {
             case 'completed':
@@ -303,7 +302,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: statusColor.withOpacity(0.1),
+          color: statusColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
@@ -323,9 +322,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
     switch (activity['type']) {
       case 'appointment':
         // Navigate to appointment details
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Navigate to appointment details')),
-        );
+        final appointmentData = activity['data'];
+        if (appointmentData != null) {
+          // Navigate to appointments screen which will show the appointment
+          context.push('/appointments');
+        }
         break;
       case 'wallet':
         // Navigate to wallet

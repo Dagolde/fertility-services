@@ -403,6 +403,35 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                   ],
                 ),
               ],
+              if (!isUpcoming && appointment.status == 'completed') ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _writeReview(appointment),
+                        icon: const Icon(Icons.rate_review, size: 18),
+                        label: const Text('Write Review'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push(
+                          '/hospitals/${appointment.hospitalId}/reviews',
+                          extra: {'hospitalName': appointment.hospitalName},
+                        ),
+                        icon: const Icon(Icons.reviews, size: 18),
+                        label: const Text('View Reviews'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -577,6 +606,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _writeReview(AppointmentModel appointment) {
+    context.push(
+      '/reviews/submit',
+      extra: {
+        'hospitalId': appointment.hospitalId,
+        'appointmentId': appointment.id,
+        'hospitalName': appointment.hospitalName,
+      },
     );
   }
 
