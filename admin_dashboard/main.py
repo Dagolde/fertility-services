@@ -144,7 +144,7 @@ def get_medical_record_file_url(record_id):
 def verify_medical_record(record_id, verification_status, notes=""):
     try:
         response = requests.post(
-            f"{API_BASE_URL}/medical-records/{record_id}/verify",
+            f"{API_BASE_URL}/admin/medical-records/{record_id}/verify",
             json={"is_verified": verification_status, "verification_notes": notes},
             headers=get_headers()
         )
