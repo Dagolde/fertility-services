@@ -143,12 +143,15 @@ def get_medical_record_file_url(record_id):
 
 def verify_medical_record(record_id, verification_status, notes=""):
     try:
-        response = requests.post(
-            f"{API_BASE_URL}/admin/medical-records/{record_id}/verify",
-            json={"is_verified": verification_status, "verification_notes": notes},
-            headers=get_headers()
-        )
-        return response.status_code == 200
+        url = f"{API_BASE_URL}/admin/medical-records/{record_id}/verify"
+        payload = {"is_verified": verification_status, "verification_notes": notes}
+        response = requests.post(url, json=payload, headers=get_headers())
+        
+        if response.status_code == 200:
+            return True
+        else:
+            st.error(f"Verification failed: {response.status_code} - {response.text}")
+            return False
     except Exception as e:
         st.error(f"Error verifying medical record: {str(e)}")
         return False
