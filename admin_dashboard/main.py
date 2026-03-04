@@ -164,10 +164,17 @@ def verify_medical_record(record_id, verification_status, notes=""):
 
 def delete_medical_record(record_id):
     try:
-        response = requests.delete(f"{API_BASE_URL}/medical-records/admin/{record_id}", headers=get_headers())
-        return response.status_code == 200
+        url = f"{API_BASE_URL}/medical-records/admin/{record_id}"
+        response = requests.delete(url, headers=get_headers())
+        
+        if response.status_code == 200:
+            return True
+        else:
+            st.error(f"Delete failed: {response.status_code} - {response.text}")
+            return False
     except Exception as e:
         st.error(f"Error deleting medical record: {str(e)}")
+        return False
         return False
 
 def get_hospitals():
@@ -1207,17 +1214,24 @@ def display_medical_record_card(record, user, index):
             # Add delete button for rejected records
             if not verification_status:  # Show delete button for rejected records
                 st.markdown("---")  # Add a separator
-                if st.button("🗑️ Delete", key=f"delete_record_{unique_key_suffix}", type="secondary"):
-                    # Add confirmation dialog
-                    if st.session_state.get(f"confirm_delete_{unique_key_suffix}", False):
+                confirm_key = f"confirm_delete_{unique_key_suffix}"
+                
+                if st.session_state.get(confirm_key, False):
+                    # Second click - actually delete
+                    if st.button("🗑️ Confirm Delete", key=f"delete_record_{unique_key_suffix}", type="primary"):
                         if delete_medical_record(record['id']):
+                            # Clear confirmation state
+                            st.session_state[confirm_key] = False
                             st.success("Record deleted successfully!")
                             st.rerun()
                         else:
                             st.error("Failed to delete record")
-                    else:
-                        st.session_state[f"confirm_delete_{unique_key_suffix}"] = True
-                        st.warning("Click delete again to confirm")
+                            st.session_state[confirm_key] = False
+                else:
+                    # First click - ask for confirmation
+                    if st.button("🗑️ Delete", key=f"delete_record_{unique_key_suffix}", type="secondary"):
+                        st.session_state[confirm_key] = True
+                        st.rerun()
                         st.rerun()
         
         st.markdown('</div>', unsafe_allow_html=True)
