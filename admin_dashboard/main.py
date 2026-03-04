@@ -1181,8 +1181,8 @@ def display_medical_record_card(record, user, index):
         
         with col4:
             # Verification actions
-            # Create a unique key using record ID, index, user ID, and creation timestamp
-            unique_key_suffix = f"{record['id']}_{index}_{user['id']}_{record.get('created_at', '').replace(':', '').replace('-', '').replace(' ', '')}"
+            # Create a unique key using record ID and index - simpler and guaranteed unique
+            unique_key_suffix = f"{record['id']}_{index}"
             
             if not verification_status:
                 if st.button("✅ Verify", key=f"verify_record_{unique_key_suffix}"):
