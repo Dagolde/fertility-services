@@ -294,8 +294,8 @@ The implementation follows a layered approach:
     - Configure Celery beat schedule
     - _Requirements: 4.4, 4.6_
 
-- [ ] 13. Implement notification mobile UI
-  - [ ] 13.1 Create notifications screen
+- [x] 13. Implement notification mobile UI
+  - [x] 13.1 Create notifications screen
     - Display notifications list with unread badges
     - Group by date (Today, Yesterday, Earlier)
     - Implement mark as read on tap
@@ -303,13 +303,13 @@ The implementation follows a layered approach:
     - Show notification icons by type
     - _Requirements: 4.7_
 
-  - [ ] 13.2 Create notification preferences screen
+  - [x] 13.2 Create notification preferences screen
     - Display toggle switches for each channel
     - Group preferences by notification type
     - Add save button with confirmation
     - _Requirements: 4.3_
 
-  - [ ] 13.3 Implement notification state management
+  - [x] 13.3 Implement notification state management
     - Create NotificationProvider with state for notifications list, unread count
     - Implement methods: loadNotifications, markAsRead, updatePreferences
     - Handle real-time updates from FCM
