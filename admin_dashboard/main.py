@@ -131,7 +131,12 @@ def get_user_medical_records(user_id):
 
 def get_all_medical_records():
     try:
-        response = requests.get(f"{API_BASE_URL}/medical-records/admin/all", headers=get_headers())
+        # Add timestamp to prevent caching
+        import time
+        response = requests.get(
+            f"{API_BASE_URL}/medical-records/admin/all?_t={int(time.time())}", 
+            headers=get_headers()
+        )
         return response.json() if response.status_code == 200 else []
     except Exception as e:
         st.error(f"Error fetching medical records: {str(e)}")
